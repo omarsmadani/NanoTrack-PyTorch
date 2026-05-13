@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -v \"\\\\.py$\\\\|\\\\.yaml$\\\\|\\\\.md$\\\\|\\\\.cfg$\\\\|\\\\.txt$\\\\|\\\\.sh$\\\\|\\\\.json$\\\\|\\\\.gitignore\\\\|\\\\.tflite$\\\\|\\\\.pyc$\\\\|LICENSE\\\\|Zone.Identifier\\\\|data$\\\\|datasets$\")",
+      "Bash(git push *)",
+      "Read(//home/sse/.ssh/**)",
+      "Bash(ssh -T git@github.com)",
+      "Bash(ssh-keyscan github.com)",
+      "Bash(git remote *)",
+      "Bash(git ls-remote *)",
+      "Bash(rm -rf .git)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}

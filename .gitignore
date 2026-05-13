@@ -1,0 +1,23 @@
+.vscode
+__pycache__
+build
+*.DS_Store
+
+# Large binary artifacts
+venv/
+models/onnx/
+models/nanotrackv1/
+models/nanotrackv2/
+models/nanotrackv3/
+models/pretrained/
+models/snapshot/
+models/tf/nanotrack_backbone_tf/saved_model.pb
+models/tf/nanotrack_backbone_tf/fingerprint.pb
+models/tf/nanotrack_backbone_tf/variables/
+models/tf/nanotrack_head_tf/saved_model.pb
+models/tf/nanotrack_head_tf/fingerprint.pb
+models/tf/nanotrack_head_tf/variables/
+
+# Videos
+bin/*.mp4
+bin/*.avi

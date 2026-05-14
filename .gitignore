@@ -5,7 +5,6 @@ build
 .claude/
 # Large binary artifacts
 venv/
-models/onnx/
 models/nanotrackv1/
 models/nanotrackv2/
 models/nanotrackv3/

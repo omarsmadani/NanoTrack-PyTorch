@@ -13,7 +13,17 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(GIT_SSH_COMMAND=\"ssh -o BatchMode=yes\" git push -u origin master)",
-      "Bash(echo \"EXIT:$?\")"
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(GIT_SSH_COMMAND=\"ssh -o BatchMode=yes\" git push)",
+      "Bash(curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg)",
+      "Bash(sudo apt-key add -)",
+      "Bash(sudo tee /etc/apt/sources.list.d/coral-edgetpu.list)",
+      "Bash(sudo apt-get update -qq)",
+      "Bash(sudo apt-get install -y edgetpu-compiler)",
+      "Bash(curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg -o /tmp/coral-key.gpg)",
+      "Read(//tmp/**)",
+      "Bash(cat /etc/apt/sources.list.d/coral-edgetpu.list 2>/dev/null || echo \"FILE NOT FOUND\")",
+      "Read(//etc/apt/sources.list.d/**)"
     ]
   }
 }

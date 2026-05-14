@@ -1,0 +1,19 @@
+# Dependencies for Coral Dev Board Mini (Edge TPU)
+# Install order matters — run inside a venv created with --system-site-packages
+#
+# python3 -m venv --system-site-packages env
+# source env/bin/activate
+# pip install --upgrade pip numpy
+# pip install -r requirements_coral.txt
+#
+# Required system packages (apt):
+#   sudo apt-get install python3-pip python3-opencv libedgetpu1-std
+#
+# Required env var (add to ~/.bashrc to persist):
+#   export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1
+
+tflite-runtime
+pycoral
+numpy
+opencv-python-headless
+yacs

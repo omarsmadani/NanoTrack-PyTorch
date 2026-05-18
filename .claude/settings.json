@@ -23,7 +23,8 @@
       "Bash(curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg -o /tmp/coral-key.gpg)",
       "Read(//tmp/**)",
       "Bash(cat /etc/apt/sources.list.d/coral-edgetpu.list 2>/dev/null || echo \"FILE NOT FOUND\")",
-      "Read(//etc/apt/sources.list.d/**)"
+      "Read(//etc/apt/sources.list.d/**)",
+      "Bash(git check-ignore *)"
     ]
   }
 }

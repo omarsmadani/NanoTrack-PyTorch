@@ -30,7 +30,7 @@ EXEMPLAR_SIZE    = 127
 INSTANCE_SIZE    = 255
 CONTEXT_AMOUNT   = 0.5
 STRIDE           = 16
-OUTPUT_SIZE      = 15       # score grid side length (configv3 OUTPUT_SIZE)
+OUTPUT_SIZE      = 16       # head output grid is 16x16 (matches TFLite cls/loc shape)
 PENALTY_K        = 0.138
 WINDOW_INFLUENCE = 0.455
 LR               = 0.348
@@ -290,23 +290,25 @@ class NanoTrackerTFLite:
 # Frame source
 # ---------------------------------------------------------------------------
 def get_frames(source):
+    """Yields (frame, fps). fps is None for webcam/image dirs."""
     if str(source) == '0' or (isinstance(source, str) and source.isdigit()):
         cap = cv2.VideoCapture(int(source))
         for _ in range(5): cap.read()
         while True:
             ret, frame = cap.read()
-            if ret: yield frame
+            if ret: yield frame, None
             else: break
     elif isinstance(source, str) and os.path.isdir(source):
         imgs = sorted(glob(os.path.join(source, '*.jp*')),
                       key=lambda p: int(os.path.splitext(os.path.basename(p))[0]))
         for p in imgs:
-            yield cv2.imread(p)
+            yield cv2.imread(p), None
     else:
         cap = cv2.VideoCapture(source)
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
         while True:
             ret, frame = cap.read()
-            if ret: yield frame
+            if ret: yield frame, fps
             else: break
         cap.release()
 
@@ -326,7 +328,11 @@ def main():
                         help='save output video')
     parser.add_argument('--bbox',     type=int, nargs=4, default=None,
                         metavar=('X','Y','W','H'),
-                        help='initial bbox; if omitted uses selectROI')
+                        help='initial bbox (x y w h). Overrides click mode.')
+    parser.add_argument('--size',     type=int, default=None,
+                        metavar='PX',
+                        help='click-to-track mode: bbox side length in pixels. '
+                             'Click target on the first frame; bbox is centred there.')
     args = parser.parse_args()
 
     print("Loading models...")
@@ -339,10 +345,37 @@ def main():
     writer = None
     first_frame = True
 
-    for frame in get_frames(args.video):
+    def click_for_bbox(frame, size):
+        """Show frame and wait for a single mouse click; return centred bbox."""
+        click = {'pt': None}
+        def on_mouse(event, x, y, flags, _):
+            if event == cv2.EVENT_LBUTTONDOWN:
+                click['pt'] = (x, y)
+        cv2.setMouseCallback(video_name, on_mouse)
+        prompt = f"Click target ({size}x{size} px). Press q to quit."
+        while click['pt'] is None:
+            disp = frame.copy()
+            cv2.putText(disp, prompt, (10, 25),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+            cv2.imshow(video_name, disp)
+            if cv2.waitKey(20) & 0xFF == ord('q'):
+                sys.exit(0)
+        cv2.setMouseCallback(video_name, lambda *a, **k: None)
+        x, y = click['pt']
+        return [x - size // 2, y - size // 2, size, size]
+
+    import time
+    frame_period = None
+    next_frame_time = None
+    for frame, fps in get_frames(args.video):
+        if fps and frame_period is None:
+            frame_period = 1.0 / fps
+            next_frame_time = time.monotonic()
         if first_frame:
             if args.bbox:
                 init_rect = args.bbox
+            elif args.size:
+                init_rect = click_for_bbox(frame, args.size)
             else:
                 init_rect = cv2.selectROI(video_name, frame, False, False)
             tracker.init(frame, init_rect)
@@ -370,7 +403,14 @@ def main():
         cv2.imshow(video_name, frame)
         if writer:
             writer.write(frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+
+        # Pace playback to the source video's FPS
+        if frame_period is not None:
+            next_frame_time += frame_period
+            wait_ms = max(1, int((next_frame_time - time.monotonic()) * 1000))
+        else:
+            wait_ms = 1
+        if cv2.waitKey(wait_ms) & 0xFF == ord('q'):
             break
 
     if writer:

@@ -1,0 +1,17 @@
+Edge TPU Compiler version 16.0.384591198
+Input: nanotrack_head_int8.tflite
+Output: nanotrack_head_int8_edgetpu.tflite
+
+Operator                       Count      Status
+
+CONV_2D                        22         Mapped to Edge TPU
+EXP                            1          Operation is working on an unsupported data type
+RESHAPE                        8          Mapped to Edge TPU
+TRANSPOSE                      10         Mapped to Edge TPU
+LOGISTIC                       2          Mapped to Edge TPU
+FULLY_CONNECTED                2          Mapped to Edge TPU
+DEPTHWISE_CONV_2D              12         Mapped to Edge TPU
+DEQUANTIZE                     1          Operation is working on an unsupported data type
+MUL                            2          Mapped to Edge TPU
+MEAN                           2          Mapped to Edge TPU
+QUANTIZE                       1          Operation is otherwise supported, but not mapped due to some unspecified limitation

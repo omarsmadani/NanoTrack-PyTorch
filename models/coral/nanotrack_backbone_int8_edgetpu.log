@@ -1,0 +1,18 @@
+Edge TPU Compiler version 16.0.384591198
+Input: nanotrack_backbone_int8.tflite
+Output: nanotrack_backbone_int8_edgetpu.tflite
+
+Operator                       Count      Status
+
+QUANTIZE                       1          Mapped to Edge TPU
+MEAN                           6          Mapped to Edge TPU
+ADD                            15         Mapped to Edge TPU
+TRANSPOSE                      1          Mapped to Edge TPU
+PAD                            4          Mapped to Edge TPU
+RELU                           17         Mapped to Edge TPU
+FULLY_CONNECTED                12         Mapped to Edge TPU
+DEPTHWISE_CONV_2D              8          Mapped to Edge TPU
+MUL                            28         Mapped to Edge TPU
+CONV_2D                        16         Mapped to Edge TPU
+MINIMUM                        17         Mapped to Edge TPU
+RESHAPE                        6          Mapped to Edge TPU

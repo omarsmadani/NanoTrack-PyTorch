@@ -21,9 +21,13 @@ from glob import glob
 
 # ---------------------------------------------------------------------------
 # Paths (relative to repo root — run from NanoTrack/)
+# The _edgetpu.tflite variants are produced by edgetpu_compiler and run on the
+# Edge TPU; the plain _int8.tflite variants run on CPU.
 # ---------------------------------------------------------------------------
-BACKBONE_MODEL = "./models/coral/nanotrack_backbone_int8.tflite"
-HEAD_MODEL     = "./models/coral/nanotrack_head_int8.tflite"
+BACKBONE_TPU = "./models/coral/nanotrack_backbone_int8_edgetpu.tflite"
+HEAD_TPU     = "./models/coral/nanotrack_head_int8_edgetpu.tflite"
+BACKBONE_CPU = "./models/coral/nanotrack_backbone_int8.tflite"
+HEAD_CPU     = "./models/coral/nanotrack_head_int8.tflite"
 
 # Tracking hyper-parameters (from configv3.yaml)
 EXEMPLAR_SIZE    = 127
@@ -43,10 +47,12 @@ def make_interpreter(model_path, use_tpu=True):
     if use_tpu:
         try:
             import tflite_runtime.interpreter as tflite
-            from pycoral.utils.edgetpu import load_delegate
+            # load_delegate lives in tflite_runtime.interpreter; pycoral re-exports
+            # it on newer releases but not on the board's tflite_runtime 2.5.0.
+            delegate = tflite.load_delegate('libedgetpu.so.1')
             return tflite.Interpreter(
                 model_path=model_path,
-                experimental_delegates=[load_delegate('libedgetpu.so.1')]
+                experimental_delegates=[delegate]
             )
         except Exception as e:
             print(f"[warn] Edge TPU delegate unavailable ({e}), falling back to CPU")
@@ -318,8 +324,12 @@ def get_frames(source):
 # ---------------------------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(description='NanoTrack TFLite demo (Coral)')
-    parser.add_argument('--backbone', default=BACKBONE_MODEL)
-    parser.add_argument('--head',     default=HEAD_MODEL)
+    parser.add_argument('--backbone', default=None,
+                        help='override backbone model path '
+                             '(default: _edgetpu variant, or _int8 with --no_tpu)')
+    parser.add_argument('--head',     default=None,
+                        help='override head model path '
+                             '(default: _edgetpu variant, or _int8 with --no_tpu)')
     parser.add_argument('--video',    default='./bin/Video.mp4',
                         help='video file, image dir, or 0 for webcam')
     parser.add_argument('--no_tpu',   action='store_true',
@@ -335,8 +345,14 @@ def main():
                              'Click target on the first frame; bbox is centred there.')
     args = parser.parse_args()
 
-    print("Loading models...")
-    tracker = NanoTrackerTFLite(args.backbone, args.head, use_tpu=not args.no_tpu)
+    use_tpu = not args.no_tpu
+    backbone_path = args.backbone or (BACKBONE_TPU if use_tpu else BACKBONE_CPU)
+    head_path     = args.head     or (HEAD_TPU     if use_tpu else HEAD_CPU)
+
+    print(f"Loading models ({'Edge TPU' if use_tpu else 'CPU'})...")
+    print(f"  backbone: {backbone_path}")
+    print(f"  head:     {head_path}")
+    tracker = NanoTrackerTFLite(backbone_path, head_path, use_tpu=use_tpu)
     print("Models loaded.")
 
     video_name = os.path.splitext(os.path.basename(str(args.video)))[0]

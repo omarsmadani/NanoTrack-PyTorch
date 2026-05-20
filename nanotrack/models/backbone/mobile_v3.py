@@ -16,39 +16,36 @@ def _make_divisible(v, divisor, min_value=None):
         new_v += divisor
     return new_v
 
-##(1) Original training method
-# class h_sigmoid(nn.Module):
-#     def __init__(self, inplace=True):
-#         super(h_sigmoid, self).__init__()
-#         self.relu = nn.ReLU6(inplace=inplace)
+import torch
 
-#     def forward(self, x):
-#         return self.relu(x + 3) / 6
-
-# class h_swish(nn.Module):
-#     def __init__(self, inplace=True):
-#         super(h_swish, self).__init__()
-#         self.sigmoid = h_sigmoid(inplace=inplace)
-
-#     def forward(self, x):
-#         return x * self.sigmoid(x)
-
-#(2) If you want to run faster, before you convert to onnx model, you should use the following operators，since onnx can better optimize them
+# Hard-swish / hard-sigmoid written so the TFLite converter does NOT re-fuse them
+# into a single HARD_SWISH op. The Edge TPU compiler cannot map HARD_SWISH — it
+# fragments the graph into multiple subgraphs and forces the whole backbone onto
+# the CPU.
+#
+# The converter's MLIR pattern-matcher recognises the canonical hard-swish shape
+#   x * relu6(x + 3) / 6
+# and fuses it. To avoid the match we compute the numerically-identical value
+# through a different op structure: the +3 / *(1/6) scaling is folded into a
+# single affine map applied *before* a clamp(0,1), so the matcher never sees the
+# add-3 → relu6 → mul chain it looks for. Result: only primitive ops
+# (MUL, ADD, MINIMUM, MAXIMUM) the Edge TPU supports.
 class h_sigmoid(nn.Module):
     def __init__(self, inplace=True):
         super(h_sigmoid, self).__init__()
-        self.hard_sigmoid = nn.Hardsigmoid(inplace=inplace)
 
     def forward(self, x):
-        return self.hard_sigmoid(x)
+        # hard_sigmoid(x) = clamp(x/6 + 0.5, 0, 1)
+        y = x * (1.0 / 6.0) + 0.5
+        return torch.clamp(y, 0.0, 1.0)
 
 class h_swish(nn.Module):
     def __init__(self, inplace=True):
         super(h_swish, self).__init__()
-        self.hard_swish = nn.Hardswish(inplace=True)
+        self.sigmoid = h_sigmoid(inplace=inplace)
 
     def forward(self, x):
-        return self.hard_swish(x)
+        return x * self.sigmoid(x)
 
 class SELayer(nn.Module):
     def __init__(self, channel, reduction=4):

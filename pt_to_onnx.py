@@ -15,7 +15,11 @@ from nanotrack.core.config import cfg
 from nanotrack.utils.model_load import load_pretrain
 from nanotrack.models.model_builder import ModelBuilder
 
-torch.serialization.add_safe_globals([numpy._core.multiarray.scalar])
+try:
+    _np_scalar = numpy._core.multiarray.scalar   # numpy >= 2.0
+except AttributeError:
+    _np_scalar = numpy.core.multiarray.scalar    # numpy < 2.0
+torch.serialization.add_safe_globals([_np_scalar])
 
 # Force CPU to avoid CUDA-specific artifacts in the ONNX graph
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"

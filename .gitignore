@@ -20,6 +20,11 @@ models/tf/nanotrack_head_tf/variables/
 # Videos (keep Video3.mp4 as the demo clip for the board)
 bin/Video.mp4
 bin/Video2.mp4
+bin/Video4.mp4
 bin/DJI1.mp4
 bin/DJI2.mp4
 bin/*.avi
+bin/*.mp4:Zone.Identifier
+
+# onnx2tf scratch file (auto-downloaded calibration data)
+calibration_image_sample_data_*.npy

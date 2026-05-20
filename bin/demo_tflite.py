@@ -165,10 +165,16 @@ def bbox_clip(cx, cy, w, h, img_shape):
 # Tracker class
 # ---------------------------------------------------------------------------
 class NanoTrackerTFLite:
-    def __init__(self, backbone_path, head_path, use_tpu=True):
-        self.bb_interp = make_interpreter(backbone_path, use_tpu)
+    def __init__(self, backbone_path, head_path,
+                 backbone_tpu=True, head_tpu=False):
+        # The head's Edge TPU model segfaults the board's runtime: its
+        # EXP/QUANTIZE/DEQUANTIZE ops stay on CPU, and the resulting
+        # TPU<->CPU handoff node crashes EdgeTpuDelegateForCustomOp.
+        # The backbone (all 131 ops on TPU) is the heavy model, so we run
+        # the backbone on the TPU and keep the head on CPU by default.
+        self.bb_interp = make_interpreter(backbone_path, backbone_tpu)
         self.bb_interp.allocate_tensors()
-        self.hd_interp = make_interpreter(head_path, use_tpu)
+        self.hd_interp = make_interpreter(head_path, head_tpu)
         self.hd_interp.allocate_tensors()
 
         # Backbone I/O details
@@ -346,13 +352,18 @@ def main():
     args = parser.parse_args()
 
     use_tpu = not args.no_tpu
-    backbone_path = args.backbone or (BACKBONE_TPU if use_tpu else BACKBONE_CPU)
-    head_path     = args.head     or (HEAD_TPU     if use_tpu else HEAD_CPU)
+    # Backbone runs on the Edge TPU; the head runs on CPU even in TPU mode
+    # (its _edgetpu model crashes the board's runtime — see NanoTrackerTFLite).
+    backbone_tpu = use_tpu
+    head_tpu     = False
+    backbone_path = args.backbone or (BACKBONE_TPU if backbone_tpu else BACKBONE_CPU)
+    head_path     = args.head     or HEAD_CPU
 
-    print(f"Loading models ({'Edge TPU' if use_tpu else 'CPU'})...")
-    print(f"  backbone: {backbone_path}")
-    print(f"  head:     {head_path}")
-    tracker = NanoTrackerTFLite(backbone_path, head_path, use_tpu=use_tpu)
+    print(f"Loading models...")
+    print(f"  backbone: {backbone_path}  ({'Edge TPU' if backbone_tpu else 'CPU'})")
+    print(f"  head:     {head_path}  (CPU)")
+    tracker = NanoTrackerTFLite(backbone_path, head_path,
+                                backbone_tpu=backbone_tpu, head_tpu=head_tpu)
     print("Models loaded.")
 
     video_name = os.path.splitext(os.path.basename(str(args.video)))[0]
